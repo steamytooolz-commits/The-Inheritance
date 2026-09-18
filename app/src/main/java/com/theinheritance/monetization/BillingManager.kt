@@ -59,8 +59,15 @@ class BillingManager @Inject constructor(
             )
             .build()
         return suspendCancellableCoroutine { cont ->
-            client.queryProductDetailsAsync(params) { result, details ->
-                if (cont.isActive) cont.resume(details.firstOrNull().takeIf { result.responseCode == BillingClient.BillingResponseCode.OK })
+            client.queryProductDetailsAsync(params) { result, detailsResult ->
+                if (cont.isActive) {
+                    val detail = if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        detailsResult.productDetailsList.firstOrNull()
+                    } else {
+                        null
+                    }
+                    cont.resume(detail)
+                }
             }
         }
     }

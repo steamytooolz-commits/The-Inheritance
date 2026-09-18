@@ -23,23 +23,58 @@ import com.theinheritance.ui.theme.ClayCard
 fun ModelManagerScreen(vm: ModelManagerViewModel = hiltViewModel()) {
     val s by vm.state.collectAsState()
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp).testTag("model_manager_screen"),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .testTag("model_manager_screen"),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { Text("AI Models (offline-first)", style = MaterialTheme.typography.headlineMedium) }
-        item { Text("FunctionGemma 270M is bundled. Larger models download on unmetered Wi-Fi only (WorkManager).") }
+        item {
+            Text(
+                text = "AI Models (offline-first)",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        item {
+            Text(
+                text = "FunctionGemma 270M is bundled. Larger models download on unmetered Wi-Fi only (WorkManager).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+            )
+        }
         items(AvailableModels.all) { m ->
             ClayCard(modifier = Modifier.fillMaxWidth().testTag("model_${m.id}")) {
-                Text(m.label)
-                Text("${m.sizeBytes / 1024 / 1024} MB ${if (m.bundled) "(bundled)" else "(download)"}")
+                Text(
+                    text = m.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${m.sizeBytes / 1024 / 1024} MB ${if (m.bundled) "(bundled)" else "(download)"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
+                )
                 if (!m.bundled) {
                     if (s.downloadingId == m.id) {
-                        Text("Downloading… ${s.progress}%")
+                        Text(
+                            text = "Downloading… ${s.progress}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     } else {
-                        ClayButton("Download on Wi-Fi", { vm.download(m) }, isPrimary = false, testTag = "btn_download_${m.id}")
+                        ClayButton(
+                            text = "Download on Wi-Fi",
+                            onClick = { vm.download(m) },
+                            isPrimary = false,
+                            modifier = Modifier.fillMaxWidth(),
+                            testTag = "btn_download_${m.id}"
+                        )
                     }
                 }
             }
         }
     }
 }
+

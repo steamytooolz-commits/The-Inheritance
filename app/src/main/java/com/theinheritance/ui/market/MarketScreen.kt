@@ -23,22 +23,45 @@ fun MarketScreen(vm: MarketViewModel = hiltViewModel()) {
     val s by vm.state.collectAsState()
     LaunchedEffect(Unit) { vm.loadWeek() }
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp).testTag("market_screen"),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .testTag("market_screen"),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { Text("Market & Street", style = MaterialTheme.typography.headlineMedium) }
+        item {
+            Text(
+                text = "Market & Street",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
         if (s.events.isEmpty()) {
             item {
                 ClayCard(modifier = Modifier.fillMaxWidth()) {
-                    Text("Quiet week. Too quiet — the uncle is suspicious.")
+                    Text(
+                        text = "Quiet week. Too quiet — the uncle is suspicious.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
         items(s.events) { e ->
             ClayCard(modifier = Modifier.fillMaxWidth().testTag("market_event_${e.day}")) {
-                Text("Day ${e.day}: ${e.eventType}")
-                Text(e.narrative)
+                Text(
+                    text = "Day ${e.day}: ${e.eventType}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = e.narrative,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
             }
         }
     }
 }
+

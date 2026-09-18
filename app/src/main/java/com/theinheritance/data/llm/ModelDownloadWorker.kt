@@ -10,7 +10,7 @@ class ModelDownloadWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, 
         val url = inputData.getString("url").orEmpty()
         if (url.isBlank()) return Result.failure()
         for (p in 0..100 step 10) {
-            setProgress(workDataOf("progress" to p))
+            setProgressAsync(workDataOf("progress" to p))
             try {
                 Thread.sleep(120)
             } catch (_: InterruptedException) {

@@ -2,7 +2,6 @@ import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesS
 
 plugins {
   alias(libs.plugins.android.application)
-  alias(libs.plugins.kotlin.android)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.ksp)
@@ -18,7 +17,7 @@ android {
   compileSdk = 36
 
   defaultConfig {
-    applicationId = "com.theinheritance"
+    applicationId = "com.aistudio.theinheritance.ptwqzk"
     minSdk = 26
     targetSdk = 36
     versionCode = 1
@@ -73,10 +72,6 @@ android {
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-  }
-
-  kotlinOptions {
-    jvmTarget = "17"
   }
 
   buildFeatures {
@@ -157,8 +152,8 @@ dependencies {
   implementation(libs.mediapipe.tasks.genai)
 
   // Charts
-  implementation(libs.vico.compose.m3)
-  implementation(libs.vico.core)
+  // implementation(libs.vico.compose.m3)
+  // implementation(libs.vico.core)
 
   // Firebase
   implementation(platform(libs.firebase.bom))
@@ -175,8 +170,15 @@ dependencies {
   testImplementation(libs.robolectric)
   testImplementation(libs.androidx.test.core)
   testImplementation(libs.coroutines.test)
+  testImplementation(platform(libs.compose.bom))
+  testImplementation(libs.compose.ui.test)
+  testImplementation(libs.roborazzi)
+  testImplementation(libs.roborazzi.compose)
+  testImplementation(libs.roborazzi.junit.rule)
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.espresso.core)
   androidTestImplementation(platform(libs.compose.bom))
   androidTestImplementation(libs.compose.ui.test)
 }
+
+

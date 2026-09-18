@@ -13,7 +13,17 @@ import com.theinheritance.ui.theme.ClayCard
 @Composable
 fun GmFeedCard(line: String) {
     ClayCard(modifier = Modifier.fillMaxWidth().testTag("gm_feed_card")) {
-        Text("From the ledger…", style = MaterialTheme.typography.labelLarge)
-        Text(line, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
+        Text(
+            text = "From the ledger…",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = line,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 8.dp)
+        )
     }
 }
+

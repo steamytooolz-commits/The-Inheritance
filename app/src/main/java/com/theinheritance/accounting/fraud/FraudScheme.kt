@@ -80,7 +80,7 @@ object FraudSchemeLibrary {
 
 /**
  * Contract for schemes that plant seed transactions into a fresh run.
- * Lives here so every `schemes/*` file stays a single spec-named class.
+ * Lives here so every schemes package file stays a single spec-named class.
  */
 interface SchemePlanter {
     val scheme: FraudScheme

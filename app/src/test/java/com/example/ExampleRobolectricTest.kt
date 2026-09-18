@@ -2,6 +2,7 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.theinheritance.R
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,3 +19,4 @@ class ExampleRobolectricTest {
     assertEquals("The Inheritance", appName)
   }
 }
+

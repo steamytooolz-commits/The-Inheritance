@@ -2,6 +2,7 @@ package com.theinheritance.ui.settings
 
 import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,35 +34,59 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val activity = LocalContext.current as? Activity
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp).testTag("settings_screen"),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .testTag("settings_screen"),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { Text("Settings", style = MaterialTheme.typography.headlineMedium) }
+        item {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
         item {
             ClayCard(modifier = Modifier.fillMaxWidth()) {
-                Text("Online GM (optional)")
-                ClayTextField(s.remoteUrl, vm::setRemoteUrl, "Base URL", testTag = "settings_url")
-                ClayTextField(s.remoteKey, vm::setRemoteKey, "API key", testTag = "settings_key")
-                ClayButton(
-                    if (s.useRemote) "Using Remote — tap to go offline" else "Use Remote",
-                    vm::toggleRemote,
-                    testTag = "btn_toggle_remote"
+                Text(
+                    text = "Online GM (Optional)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    ClayTextField(s.remoteUrl, vm::setRemoteUrl, "Base URL", Modifier.fillMaxWidth(), testTag = "settings_url")
+                    ClayTextField(s.remoteKey, vm::setRemoteKey, "API key", Modifier.fillMaxWidth(), testTag = "settings_key")
+                    ClayButton(
+                        text = if (s.useRemote) "Using Remote — Tap to go offline" else "Use Remote",
+                        onClick = vm::toggleRemote,
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "btn_toggle_remote"
+                    )
+                }
             }
         }
         item {
             ClayCard(modifier = Modifier.fillMaxWidth().testTag("pro_card")) {
-                Text(if (s.isPro) "Pro unlocked — the vault is open." else "Go Pro (one-time)")
+                Text(
+                    text = if (s.isPro) "Pro Unlocked — The vault is open." else "Go Pro (One-time purchase)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 if (!s.isPro) {
                     ClayButton(
-                        "Unlock Pro",
-                        {
+                        text = "Unlock Pro",
+                        onClick = {
                             scope.launch {
                                 if (activity != null) billing?.launchProPurchase(activity)
                                 billing?.refreshEntitlements()
                             }
                         },
                         isPrimary = false,
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                         testTag = "btn_unlock_pro"
                     )
                 }
@@ -69,15 +94,36 @@ fun SettingsScreen(
         }
         item {
             ClayCard(modifier = Modifier.fillMaxWidth()) {
-                Text("New run (30 days, NG+ keeps GM memory)")
-                ClayButton("Start new 30-day run", {}, testTag = "btn_new_run")
+                Text(
+                    text = "New Run",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Start a fresh 30-day run. New Game+ preserves uncle memories.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
+                )
+                ClayButton("Start New 30-Day Run", {}, modifier = Modifier.fillMaxWidth(), testTag = "btn_new_run")
             }
         }
         item {
             ClayCard(modifier = Modifier.fillMaxWidth()) {
-                Text("Help")
-                ClayButton("How to play", onOpenTutorial, isPrimary = false, testTag = "btn_open_tutorial")
+                Text(
+                    text = "Help & Onboarding",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                ClayButton(
+                    text = "How to Play Tutorial",
+                    onClick = onOpenTutorial,
+                    isPrimary = false,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    testTag = "btn_open_tutorial"
+                )
             }
         }
     }
 }
+

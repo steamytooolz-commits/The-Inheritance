@@ -30,31 +30,57 @@ fun TutorialScreen(
     val scope = rememberCoroutineScope()
     val (title, body) = TutorialManager.PAGES[page.coerceIn(TutorialManager.PAGES.indices)]
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp).testTag("tutorial_screen"),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .testTag("tutorial_screen"),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("How to survive", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = "How to survive",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
         ClayCard(modifier = Modifier.fillMaxWidth().testTag("tutorial_page_$page")) {
-            Text(title, style = MaterialTheme.typography.labelLarge)
-            Text(body, modifier = Modifier.padding(top = 8.dp))
-            Text("Page ${page + 1} of ${TutorialManager.PAGES.size}", modifier = Modifier.padding(top = 8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 10.dp)
+            )
+            Text(
+                text = "Page ${page + 1} of ${TutorialManager.PAGES.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp)
+            )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             if (page > 0) {
-                ClayButton("Back", { page-- }, isPrimary = false, testTag = "btn_tutorial_back")
+                ClayButton("Back", { page-- }, isPrimary = false, modifier = Modifier.weight(1f), testTag = "btn_tutorial_back")
             }
             if (page < TutorialManager.PAGES.lastIndex) {
-                ClayButton("Next", { page++ }, testTag = "btn_tutorial_next")
+                ClayButton("Next", { page++ }, modifier = Modifier.weight(1f), testTag = "btn_tutorial_next")
             } else {
                 ClayButton(
-                    "Open the ledger",
-                    {
+                    text = "Open the ledger",
+                    onClick = {
                         scope.launch { manager?.markSeen() }
                         onDone()
                     },
+                    modifier = Modifier.weight(1f),
                     testTag = "btn_tutorial_done"
                 )
             }
         }
     }
 }
+

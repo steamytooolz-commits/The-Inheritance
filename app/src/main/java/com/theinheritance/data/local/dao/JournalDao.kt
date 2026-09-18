@@ -13,8 +13,17 @@ interface JournalDao {
     @Query("SELECT * FROM journal_entries ORDER BY date DESC, id DESC")
     fun observeAll(): Flow<List<JournalEntryEntity>>
 
+    @Query("SELECT * FROM journal_entries ORDER BY date ASC, id ASC")
+    suspend fun getAllEntries(): List<JournalEntryEntity>
+
+    @Query("SELECT * FROM journal_lines")
+    suspend fun getAllLines(): List<JournalLineEntity>
+
     @Query("SELECT * FROM journal_entries WHERE id = :id")
     suspend fun getById(id: Long): JournalEntryEntity?
+
+    @Query("SELECT * FROM journal_lines WHERE journalEntryId = :entryId")
+    suspend fun getLinesForEntry(entryId: Long): List<JournalLineEntity>
 
     @Insert
     suspend fun insertEntry(entry: JournalEntryEntity): Long

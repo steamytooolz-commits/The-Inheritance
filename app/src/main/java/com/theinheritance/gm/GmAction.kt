@@ -6,7 +6,7 @@ import com.theinheritance.simulation.BusinessState
 typealias GameState = BusinessState
 
 /** Marker for all 172 GM tool calls across the six action surfaces. */
-sealed interface GmAction
+interface GmAction
 
 // Shared kernel enums used by the action surfaces.
 enum class Tone { WARM, COLD, EVASIVE, PLAYFUL, GRIEVING, ANGRY }

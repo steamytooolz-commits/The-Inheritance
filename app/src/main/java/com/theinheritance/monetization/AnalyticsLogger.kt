@@ -22,7 +22,7 @@ class AnalyticsLogger @Inject constructor(
     private fun log(name: String, block: Bundle.() -> Unit = {}) {
         try {
             FirebaseAnalytics.getInstance(context).logEvent(name, Bundle().apply(block))
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             // Analytics is optional; never crash the game for telemetry.
         }
     }

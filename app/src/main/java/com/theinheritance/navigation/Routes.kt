@@ -11,5 +11,6 @@ import kotlinx.serialization.Serializable
 @Serializable object NpcHubRoute
 @Serializable object MarketRoute
 @Serializable object ModelManagerRoute
+@Serializable object PocketBaseRoute
 @Serializable object SettingsRoute
 @Serializable object TutorialRoute
