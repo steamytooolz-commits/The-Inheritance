@@ -238,6 +238,11 @@ class CloudDatabaseClient @Inject constructor(
     suspend fun executeRawSql(sqlQuery: String): Result<SqlQueryResult> = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
         try {
+            if (backendType == DatabaseBackendType.LOCAL_ROOM) {
+                val fallback = generateLocalDemoQueryResult(sqlQuery, System.currentTimeMillis() - startTime)
+                return@withContext Result.success(fallback)
+            }
+
             val endpoint = if (backendType == DatabaseBackendType.POCKETBASE) {
                 "$baseUrl/api/records/sql"
             } else {
@@ -267,13 +272,11 @@ class CloudDatabaseClient @Inject constructor(
                 val parsed = parseSqlResponse(responseText, System.currentTimeMillis() - startTime)
                 Result.success(parsed)
             } else {
-                // Return structured local execution fallback for demo SQL query inspection
-                val fallback = generateLocalDemoQueryResult(sqlQuery, System.currentTimeMillis() - startTime)
-                Result.success(fallback)
+                val err = conn.errorStream?.let { BufferedReader(InputStreamReader(it)).use { r -> r.readText() } } ?: "HTTP $code"
+                Result.failure(Exception("Remote SQL execution failed ($code): $err"))
             }
         } catch (e: Exception) {
-            val fallback = generateLocalDemoQueryResult(sqlQuery, System.currentTimeMillis() - startTime)
-            Result.success(fallback)
+            Result.failure(e)
         }
     }
 

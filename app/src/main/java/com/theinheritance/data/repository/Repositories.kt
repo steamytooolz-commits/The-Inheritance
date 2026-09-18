@@ -14,9 +14,11 @@ import com.theinheritance.data.local.entity.AccountEntity
 import com.theinheritance.data.local.entity.GameStateEntity
 import com.theinheritance.data.local.entity.JournalEntryEntity
 import com.theinheritance.data.local.entity.JournalLineEntity
+import com.theinheritance.data.pocketbase.CloudDatabaseClient
 import com.theinheritance.simulation.BusinessState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.json.JSONObject
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,7 +29,8 @@ fun Account.toEntity() = AccountEntity(id, code, name, type.name, isContra, pare
 @Singleton
 class AccountingRepository @Inject constructor(
     private val accounts: AccountDao,
-    private val journal: JournalDao
+    private val journal: JournalDao,
+    private val cloudClient: CloudDatabaseClient
 ) {
     fun observeAccounts(): Flow<List<Account>> = accounts.observeAll().map { list -> list.map { it.toDomain() } }
     fun observeEntries(): Flow<List<JournalEntryEntity>> = journal.observeAll()
@@ -178,7 +181,21 @@ class AccountingRepository @Inject constructor(
             postedBy = entry.postedBy,
             fraudFlag = entry.fraudFlag?.name
         )
-        return journal.insertWithLines(entity, lines)
+        val id = journal.insertWithLines(entity, lines)
+
+        // Sync ledger entry to Cloud Database Client
+        try {
+            val record = JSONObject().apply {
+                put("date", entry.date.toString())
+                put("memo", entry.memo)
+                put("postedBy", entry.postedBy ?: "User")
+                put("createdAt", entity.createdAt)
+                put("lines_count", lines.size)
+            }
+            cloudClient.syncRecord("journal_entries", record)
+        } catch (_: Exception) {}
+
+        return id
     }
 
     suspend fun statements(from: LocalDate, to: LocalDate): Triple<Long, Long, Long> {
@@ -210,7 +227,10 @@ class AccountingRepository @Inject constructor(
 }
 
 @Singleton
-class GameStateRepository @Inject constructor(private val dao: GameStateDao) {
+class GameStateRepository @Inject constructor(
+    private val dao: GameStateDao,
+    private val cloudClient: CloudDatabaseClient
+) {
     fun observe(): Flow<BusinessState> = dao.observe().map { e ->
         val v = e ?: GameStateEntity()
         BusinessState(v.currentDay, v.maxDays, v.cashCents, v.businessName, v.isAlive, v.epilogueId, v.runSeed)
@@ -220,9 +240,36 @@ class GameStateRepository @Inject constructor(private val dao: GameStateDao) {
         return BusinessState(v.currentDay, v.maxDays, v.cashCents, v.businessName, v.isAlive, v.epilogueId, v.runSeed)
     }
     suspend fun upsert(state: BusinessState) {
-        dao.upsert(GameStateEntity(1, state.day, state.maxDays, state.cashCents, state.businessName, state.isAlive, state.epilogueId, state.runSeed))
+        val entity = GameStateEntity(1, state.day, state.maxDays, state.cashCents, state.businessName, state.isAlive, state.epilogueId, state.runSeed)
+        dao.upsert(entity)
+
+        // Sync game state to Cloud Database Client
+        try {
+            val record = JSONObject().apply {
+                put("day", state.day)
+                put("maxDays", state.maxDays)
+                put("cashCents", state.cashCents)
+                put("businessName", state.businessName)
+                put("isAlive", state.isAlive)
+                put("runSeed", state.runSeed)
+            }
+            cloudClient.syncRecord("game_state", record)
+        } catch (_: Exception) {}
     }
     suspend fun newRun(seed: Long, name: String = "The Book Nook") {
-        dao.upsert(GameStateEntity(1, 1, 30, 420000, name, true, null, seed))
+        val entity = GameStateEntity(1, 1, 30, 420000, name, true, null, seed)
+        dao.upsert(entity)
+
+        try {
+            val record = JSONObject().apply {
+                put("day", 1)
+                put("maxDays", 30)
+                put("cashCents", 420000)
+                put("businessName", name)
+                put("isAlive", true)
+                put("runSeed", seed)
+            }
+            cloudClient.syncRecord("game_state", record)
+        } catch (_: Exception) {}
     }
 }
