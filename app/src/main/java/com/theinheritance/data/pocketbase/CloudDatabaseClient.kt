@@ -37,6 +37,19 @@ data class ConnectionStatus(
     val message: String
 )
 
+/**
+ * CloudDatabaseClient serves as an advanced, optional network database client.
+ * It allows the game's accounting ledger and state to sync with external open-source database servers:
+ *
+ * 1. [DatabaseBackendType.POCKETBASE] (pocketbase.io) - Standard REST-to-SQLite headless CMS.
+ * 2. [DatabaseBackendType.TRAILBASE_SQL] (trailbase.io) - Modern, fast embedded SQL over HTTP interface.
+ * 3. [DatabaseBackendType.LOCAL_ROOM] - Default offline local SQLite database managed by Android Room.
+ *
+ * Use cases in the game:
+ * - Syncing double-entry journal records to high-visibility online audit dashboards.
+ * - Live state mirroring for multi-device gameplay verification or forensic gameplay review.
+ * - Serving as a secondary persistent backup repository when network connectivity is configured in Settings.
+ */
 @Singleton
 class CloudDatabaseClient @Inject constructor(
     @ApplicationContext private val context: Context

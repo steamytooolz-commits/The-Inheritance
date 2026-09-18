@@ -1,6 +1,11 @@
 package com.theinheritance.gm
 
 import com.theinheritance.data.llm.LlmEngine
+import com.theinheritance.data.llm.parseToolCalls
+import com.theinheritance.gm.actions.BookAction
+import com.theinheritance.gm.actions.CharacterAction
+import com.theinheritance.gm.actions.NarrativeAction
+import com.theinheritance.gm.actions.WorldAction
 import com.theinheritance.simulation.BusinessState
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,11 +31,12 @@ class GmOrchestrator @Inject constructor(
         }
 
         return try {
-            val response = engine.generate(systemPrompt, userPrompt)
+            val structuredResponse = engine.generateStructured(systemPrompt, userPrompt)
+            val responseText = structuredResponse.text
 
-            val actions = parseActions(response)
+            val actions = parseActions(responseText)
             if (actions.isEmpty()) {
-                return GmTurnResult.Narrative(firstLine(response), emptyList())
+                return GmTurnResult.Narrative(firstLine(responseText), emptyList())
             }
 
             val executedActions = mutableListOf<GmAction>()
@@ -49,13 +55,70 @@ class GmOrchestrator @Inject constructor(
                 }
                 steps++
             }
-            GmTurnResult.Narrative(firstLine(response), executedActions)
+            GmTurnResult.Narrative(firstLine(responseText), executedActions)
         } catch (e: Exception) {
             GmTurnResult.Narrative(ruleBasedLine(playerAction, gameState), emptyList())
         }
     }
 
-    private fun parseActions(response: String): List<GmAction> = emptyList()
+    private fun parseActions(response: String): List<GmAction> {
+        val toolCalls = parseToolCalls(response)
+        if (toolCalls.isEmpty()) return emptyList()
+
+        val list = mutableListOf<GmAction>()
+        for (call in toolCalls) {
+            val name = call.name.substringAfterLast(".")
+            val p = call.parameters
+            val action: GmAction? = when (name) {
+                "PostTransaction" -> BookAction.PostTransaction(
+                    debitAccountId = p["debitAccountId"]?.toLongOrNull() ?: 1000L,
+                    creditAccountId = p["creditAccountId"]?.toLongOrNull() ?: 4000L,
+                    amountCents = p["amountCents"]?.toLongOrNull() ?: 10000L,
+                    memo = p["memo"] ?: "GM Entry"
+                )
+                "VoidEntry" -> BookAction.VoidEntry(
+                    entryId = p["entryId"]?.toLongOrNull() ?: 1L,
+                    reason = p["reason"] ?: "GM Void"
+                )
+                "PlantDiscrepancy" -> BookAction.PlantDiscrepancy(
+                    accountId = p["accountId"]?.toLongOrNull() ?: 1000L,
+                    amountCents = p["amountCents"]?.toLongOrNull() ?: 5000L,
+                    memo = p["memo"] ?: "Unreconciled discrepancy"
+                )
+                "FabricateInvoice" -> BookAction.FabricateInvoice(
+                    vendorName = p["vendorName"] ?: "Ghost Supplier",
+                    amountCents = p["amountCents"]?.toLongOrNull() ?: 120000L
+                )
+                "ClosePeriod" -> BookAction.ClosePeriod(endDate = p["endDate"] ?: "2026-09-30")
+                "LockAccount" -> BookAction.LockAccount(
+                    accountId = p["accountId"]?.toLongOrNull() ?: 1000L,
+                    reason = p["reason"] ?: "Audit Lock"
+                )
+                "UnlockAccount" -> BookAction.UnlockAccount(
+                    accountId = p["accountId"]?.toLongOrNull() ?: 1000L,
+                    reason = p["reason"] ?: "Audit Release"
+                )
+                "ShiftTrust" -> CharacterAction.ShiftTrust(
+                    npcId = p["npcId"]?.toLongOrNull() ?: 1L,
+                    delta = p["delta"]?.toIntOrNull() ?: -1
+                )
+                "SpeakInCharacter" -> CharacterAction.SpeakInCharacter(
+                    npcId = p["npcId"]?.toLongOrNull() ?: 1L,
+                    dialogue = p["dialogue"] ?: p["text"] ?: response
+                )
+                "ReadFromTheLedger" -> NarrativeAction.ReadFromTheLedger(
+                    content = p["content"] ?: response
+                )
+                "ChangeWeather" -> WorldAction.ChangeWeather(weather = Weather.RAIN)
+                "AdvanceDay" -> WorldAction.AdvanceDay(description = p["description"] ?: "Day passes")
+                else -> null
+            }
+            if (action != null) {
+                list.add(action)
+            }
+        }
+        return list
+    }
 
     private fun firstLine(response: String): String =
         response.lineSequence().firstOrNull()?.take(600).orEmpty().ifBlank { response.take(600) }

@@ -14,12 +14,12 @@ plugins {
 
 android {
   namespace = "com.theinheritance"
-  compileSdk = 36
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "com.aistudio.theinheritance.ptwqzk"
     minSdk = 26
-    targetSdk = 36
+    targetSdk = 37
     versionCode = 1
     versionName = "1.0.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -144,6 +144,9 @@ dependencies {
   // Coroutines
   implementation(libs.coroutines.core)
   implementation(libs.coroutines.android)
+
+  // Network
+  implementation(libs.okhttp)
 
   // Serialization
   implementation(libs.kotlinx.serialization.json)
