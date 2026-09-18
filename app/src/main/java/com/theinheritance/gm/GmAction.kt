@@ -8,6 +8,8 @@ typealias GameState = BusinessState
 /** Marker for all 172 GM tool calls across the six action surfaces. */
 interface GmAction
 
+data class MalformedAction(val name: String, val reason: String) : GmAction
+
 // Shared kernel enums used by the action surfaces.
 enum class Tone { WARM, COLD, EVASIVE, PLAYFUL, GRIEVING, ANGRY }
 enum class Weather { CLEAR, RAIN, STORM, HEATWAVE, FOG }

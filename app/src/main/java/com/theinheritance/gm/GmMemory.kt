@@ -15,8 +15,8 @@ class GmMemoryStore @Inject constructor() {
     private val items = mutableListOf<GmMemory>()
     private val rejections = mutableListOf<String>()
 
-    fun record(action: GmAction, result: ActionResult.Applied) {
-        items.add(GmMemory(0, action.javaClass.simpleName, action.toString()))
+    fun record(day: Int, action: GmAction, result: ActionResult.Applied) {
+        items.add(GmMemory(day, action.javaClass.simpleName, action.toString()))
     }
 
     fun recordRejection(action: GmAction, reason: String) {

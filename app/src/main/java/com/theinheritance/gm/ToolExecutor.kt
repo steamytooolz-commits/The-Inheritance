@@ -207,6 +207,10 @@ class ToolExecutor @Inject constructor(
                 ActionResult.Applied("Triggered epilogue ending: ${action.endingId}")
             }
 
+            is MalformedAction -> {
+                ActionResult.Rejected("Malformed action: ${action.reason}")
+            }
+
             else -> ActionResult.Applied(action.javaClass.simpleName)
         }
     }
