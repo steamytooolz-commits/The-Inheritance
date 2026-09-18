@@ -16,11 +16,6 @@ import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
-sealed class ActionResult {
-    data class Applied(val summary: String) : ActionResult()
-    data class Rejected(val reason: String) : ActionResult()
-}
-
 @Singleton
 class ToolExecutor @Inject constructor(
     private val journalDao: JournalDao,
@@ -215,5 +210,3 @@ class ToolExecutor @Inject constructor(
         }
     }
 }
-
-typealias GmActionExecutor = ToolExecutor
