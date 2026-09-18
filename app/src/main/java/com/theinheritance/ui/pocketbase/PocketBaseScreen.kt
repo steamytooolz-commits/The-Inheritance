@@ -195,10 +195,27 @@ private fun ServerConfigCard(state: PocketBaseUiState, vm: PocketBaseViewModel) 
     ClayCard(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                text = "Server Endpoint",
+                text = "Server Endpoint & Connection Settings",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
+
+            if (state.isFallback) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "ℹ Auto-Fallback Active: Server was unreachable, so local Room SQLite DB is active.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
 
             ClayTextField(
                 value = state.serverUrl,
@@ -208,8 +225,52 @@ private fun ServerConfigCard(state: PocketBaseUiState, vm: PocketBaseViewModel) 
                 testTag = "input_pb_url"
             )
 
+            // Preset Endpoint Shortcuts
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                FilterChip(
+                    selected = state.serverUrl == "http://10.0.2.2:8090",
+                    onClick = {
+                        vm.setServerUrl("http://10.0.2.2:8090")
+                        vm.selectBackend(DatabaseBackendType.POCKETBASE)
+                    },
+                    label = { Text("Emulator 10.0.2.2:8090") }
+                )
+                FilterChip(
+                    selected = state.serverUrl == "http://localhost:8090",
+                    onClick = {
+                        vm.setServerUrl("http://localhost:8090")
+                        vm.selectBackend(DatabaseBackendType.POCKETBASE)
+                    },
+                    label = { Text("Device localhost:8090") }
+                )
+                FilterChip(
+                    selected = state.backendType == DatabaseBackendType.LOCAL_ROOM,
+                    onClick = vm::switchToLocalRoom,
+                    label = { Text("Offline Room SQLite 🏠") }
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                ClayButton(
+                    text = "Auto-Connect 🔄",
+                    onClick = vm::autoConnect,
+                    modifier = Modifier.weight(1f),
+                    isPrimary = true,
+                    testTag = "btn_auto_connect"
+                )
+                ClayButton(
+                    text = "Use Local Room 🏠",
+                    onClick = vm::switchToLocalRoom,
+                    modifier = Modifier.weight(1f),
+                    testTag = "btn_use_local_room"
+                )
+            }
+
             ClayButton(
-                text = "Test Endpoint Connection 📡",
+                text = "Test Endpoint Ping 📡",
                 onClick = vm::testConnection,
                 modifier = Modifier.fillMaxWidth(),
                 testTag = "btn_test_pb_conn"

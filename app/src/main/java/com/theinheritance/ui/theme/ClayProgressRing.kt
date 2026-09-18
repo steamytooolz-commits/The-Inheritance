@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.text.style.TextOverflow
+
 @Composable
 fun ClayProgressRing(
     progress: Float,
@@ -22,14 +24,16 @@ fun ClayProgressRing(
     Column(modifier = modifier) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         LinearProgressIndicator(
             progress = { progress.coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 6.dp)
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp)),
             color = MaterialTheme.colorScheme.primary,

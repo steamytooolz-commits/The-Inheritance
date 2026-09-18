@@ -71,14 +71,14 @@ fun DashboardScreen(
                     )
 
                     Row(
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier
                             .padding(top = 16.dp)
                             .fillMaxWidth()
                     ) {
-                        CashRunwayRing(repoState.cashCents)
-                        ProfitRing(repoState.netIncomeCents, repoState.revenueCents)
-                        DebtToEquityRing(repoState.debtCents, repoState.equityCents)
+                        CashRunwayRing(repoState.cashCents, modifier = Modifier.weight(1f))
+                        ProfitRing(repoState.netIncomeCents, repoState.revenueCents, modifier = Modifier.weight(1f))
+                        DebtToEquityRing(repoState.debtCents, repoState.equityCents, modifier = Modifier.weight(1f))
                     }
                 }
             }

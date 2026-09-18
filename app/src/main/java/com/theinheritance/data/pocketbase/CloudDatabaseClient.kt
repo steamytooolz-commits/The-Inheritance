@@ -1,5 +1,7 @@
 package com.theinheritance.data.pocketbase
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -7,8 +9,11 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
+import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,12 +30,36 @@ data class SqlQueryResult(
     val executionTimeMs: Long
 )
 
-@Singleton
-class CloudDatabaseClient @Inject constructor() {
+data class ConnectionStatus(
+    val isConnected: Boolean,
+    val backendType: DatabaseBackendType,
+    val isFallback: Boolean = false,
+    val message: String
+)
 
-    private var backendType: DatabaseBackendType = DatabaseBackendType.POCKETBASE
-    private var baseUrl: String = "http://10.0.2.2:8090"
+@Singleton
+class CloudDatabaseClient @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+
+    private val prefs by lazy {
+        context.getSharedPreferences("cloud_db_prefs", Context.MODE_PRIVATE)
+    }
+
+    private var backendType: DatabaseBackendType
+    private var baseUrl: String
     private var authToken: String? = null
+
+    init {
+        val savedBackend = prefs.getString("backend_type", DatabaseBackendType.LOCAL_ROOM.name)
+        backendType = try {
+            DatabaseBackendType.valueOf(savedBackend ?: DatabaseBackendType.LOCAL_ROOM.name)
+        } catch (_: Exception) {
+            DatabaseBackendType.LOCAL_ROOM
+        }
+        baseUrl = prefs.getString("base_url", "http://10.0.2.2:8090") ?: "http://10.0.2.2:8090"
+        authToken = prefs.getString("auth_token", null)
+    }
 
     fun setBackendType(type: DatabaseBackendType) {
         backendType = type
@@ -39,16 +68,51 @@ class CloudDatabaseClient @Inject constructor() {
         } else if (baseUrl.contains("8080") && type == DatabaseBackendType.POCKETBASE) {
             baseUrl = baseUrl.replace("8080", "8090")
         }
+        prefs.edit()
+            .putString("backend_type", type.name)
+            .putString("base_url", baseUrl)
+            .apply()
     }
 
     fun getBackendType(): DatabaseBackendType = backendType
 
     fun setServerUrl(url: String) {
         baseUrl = url.trimEnd('/')
+        prefs.edit().putString("base_url", baseUrl).apply()
     }
 
     fun getServerUrl(): String = baseUrl
     fun isAuthenticated(): Boolean = !authToken.isNullOrBlank()
+
+    suspend fun autoConnectOnStartup(): ConnectionStatus = withContext(Dispatchers.IO) {
+        if (backendType == DatabaseBackendType.LOCAL_ROOM) {
+            return@withContext ConnectionStatus(
+                isConnected = true,
+                backendType = DatabaseBackendType.LOCAL_ROOM,
+                isFallback = false,
+                message = "Connected to Local Android Room SQLite Database."
+            )
+        }
+
+        val testRes = testConnection()
+        if (testRes.isSuccess) {
+            ConnectionStatus(
+                isConnected = true,
+                backendType = backendType,
+                isFallback = false,
+                message = testRes.getOrDefault("Connected to ${backendType.displayName}")
+            )
+        } else {
+            val failureMsg = testRes.exceptionOrNull()?.localizedMessage ?: "Connection refused"
+            setBackendType(DatabaseBackendType.LOCAL_ROOM)
+            ConnectionStatus(
+                isConnected = true,
+                backendType = DatabaseBackendType.LOCAL_ROOM,
+                isFallback = true,
+                message = "Remote server unreachable at $baseUrl ($failureMsg). Auto-connected to Local Room SQLite Database."
+            )
+        }
+    }
 
     suspend fun testConnection(): Result<String> = withContext(Dispatchers.IO) {
         try {
@@ -56,8 +120,8 @@ class CloudDatabaseClient @Inject constructor() {
                 DatabaseBackendType.POCKETBASE -> {
                     val url = URL("$baseUrl/api/health")
                     val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 5000
-                        readTimeout = 5000
+                        connectTimeout = 4000
+                        readTimeout = 4000
                         requestMethod = "GET"
                     }
                     val code = conn.responseCode
@@ -70,21 +134,27 @@ class CloudDatabaseClient @Inject constructor() {
                 DatabaseBackendType.TRAILBASE_SQL -> {
                     val url = URL("$baseUrl/api/records/v1")
                     val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 5000
-                        readTimeout = 5000
+                        connectTimeout = 4000
+                        readTimeout = 4000
                         requestMethod = "GET"
                     }
                     val code = conn.responseCode
                     if (code in 200..299 || code == 401 || code == 403 || code == 404) {
-                        Result.success("Connected to Trailbase SQL Server ($baseUrl) - Endpoint active")
+                        Result.success("Connected to Trailbase SQL ($baseUrl)")
                     } else {
                         Result.failure(Exception("Trailbase returned HTTP $code"))
                     }
                 }
                 DatabaseBackendType.LOCAL_ROOM -> {
-                    Result.success("Using local Android Room SQLite database engine.")
+                    Result.success("Using Local Android Room SQLite Database.")
                 }
             }
+        } catch (e: ConnectException) {
+            Result.failure(Exception("Connection refused at $baseUrl. Ensure PocketBase server is running or switch to Local Room SQLite."))
+        } catch (e: SocketTimeoutException) {
+            Result.failure(Exception("Connection timed out reaching $baseUrl."))
+        } catch (e: UnknownHostException) {
+            Result.failure(Exception("Unknown host '$baseUrl'. Check server URL."))
         } catch (e: Exception) {
             Result.failure(Exception("Connection failed to $baseUrl: ${e.localizedMessage}"))
         }

@@ -20,8 +20,9 @@ data class PocketBaseUiState(
     val email: String = "admin@example.com",
     val password: String = "",
     val isConnected: Boolean = false,
+    val isFallback: Boolean = false,
     val isAuthenticated: Boolean = false,
-    val statusMessage: String = "Select PocketBase (pocketbase.io), Trailbase SQL (trailbase.io), or Offline Room SQLite.",
+    val statusMessage: String = "Initializing database connection...",
     val isBusy: Boolean = false,
     val sqlQueryText: String = "SELECT * FROM accounts;",
     val lastQueryResult: SqlQueryResult? = null,
@@ -43,11 +44,43 @@ class PocketBaseViewModel @Inject constructor(
     )
     val state = _state.asStateFlow()
 
+    init {
+        autoConnect()
+    }
+
+    fun autoConnect() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                isBusy = true,
+                statusMessage = "Connecting to database engine..."
+            )
+            val status = client.autoConnectOnStartup()
+            _state.value = _state.value.copy(
+                isBusy = false,
+                backendType = status.backendType,
+                serverUrl = client.getServerUrl(),
+                isConnected = status.isConnected,
+                isFallback = status.isFallback,
+                statusMessage = status.message
+            )
+        }
+    }
+
+    fun switchToLocalRoom() {
+        selectBackend(DatabaseBackendType.LOCAL_ROOM)
+        _state.value = _state.value.copy(
+            isConnected = true,
+            isFallback = false,
+            statusMessage = "Connected to Local Android Room SQLite Database Engine."
+        )
+    }
+
     fun selectBackend(type: DatabaseBackendType) {
         client.setBackendType(type)
         _state.value = _state.value.copy(
             backendType = type,
             serverUrl = client.getServerUrl(),
+            isFallback = false,
             statusMessage = "Switched to ${type.displayName}"
         )
     }
