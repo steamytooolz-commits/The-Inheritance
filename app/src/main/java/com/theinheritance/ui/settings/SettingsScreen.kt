@@ -1,6 +1,7 @@
 package com.theinheritance.ui.settings
 
 import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +15,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,7 +32,7 @@ fun SettingsScreen(
 ) {
     val s by vm.state.collectAsState()
     val scope = rememberCoroutineScope()
-    val activity = LocalContext.current as? Activity
+    val activity = LocalActivity.current
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()

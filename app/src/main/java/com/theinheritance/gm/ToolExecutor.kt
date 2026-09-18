@@ -13,6 +13,7 @@ import com.theinheritance.gm.actions.NarrativeAction
 import com.theinheritance.gm.actions.WorldAction
 import com.theinheritance.simulation.BusinessState
 import java.time.LocalDate
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -57,7 +58,7 @@ class ToolExecutor @Inject constructor(
                         gameStateDao.upsert(stateEntity.copy(cashCents = cash))
                     }
 
-                    ActionResult.Applied("Posted transaction of R${String.format("%.2f", action.amountCents / 100.0)} (DR ${action.debitAccountId}, CR ${action.creditAccountId}): ${action.memo}")
+                    ActionResult.Applied("Posted transaction of R${String.format(Locale.US, "%.2f", action.amountCents / 100.0)} (DR ${action.debitAccountId}, CR ${action.creditAccountId}): ${action.memo}")
                 }
             }
 
@@ -105,7 +106,7 @@ class ToolExecutor @Inject constructor(
                         gameStateDao.upsert(stateEntity.copy(cashCents = stateEntity.cashCents + action.amountCents))
                     }
                 }
-                ActionResult.Applied("Planted discrepancy of R${String.format("%.2f", action.amountCents / 100.0)} in account ${action.accountId}: ${action.memo}")
+                ActionResult.Applied("Planted discrepancy of R${String.format(Locale.US, "%.2f", action.amountCents / 100.0)} in account ${action.accountId}: ${action.memo}")
             }
 
             is BookAction.FabricateInvoice -> {
@@ -121,7 +122,7 @@ class ToolExecutor @Inject constructor(
                     JournalLineEntity(journalEntryId = 0, accountId = 2000L, creditCents = action.amountCents)
                 )
                 journalDao.insertWithLines(entity, lines)
-                ActionResult.Applied("Fabricated invoice from ${action.vendorName} for R${String.format("%.2f", action.amountCents / 100.0)}")
+                ActionResult.Applied("Fabricated invoice from ${action.vendorName} for R${String.format(Locale.US, "%.2f", action.amountCents / 100.0)}")
             }
 
             is BookAction.LockAccount -> {

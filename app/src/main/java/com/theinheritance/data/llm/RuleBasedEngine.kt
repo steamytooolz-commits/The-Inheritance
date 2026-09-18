@@ -3,6 +3,7 @@ package com.theinheritance.data.llm
 import com.theinheritance.data.local.dao.AccountDao
 import com.theinheritance.data.local.dao.GameStateDao
 import com.theinheritance.data.local.dao.NpcDao
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -30,7 +31,7 @@ class RuleBasedEngine @Inject constructor(
         val state = gameStateDao?.get()
         val currentDay = state?.currentDay ?: 1
         val cashCents = state?.cashCents ?: 420000L
-        val cashString = "R" + String.format("%,.2f", cashCents / 100.0)
+        val cashString = "R" + String.format(Locale.US, "%,.2f", cashCents / 100.0)
 
         // Fetch actual NPCs
         val npcs = npcDao?.getAll() ?: emptyList()

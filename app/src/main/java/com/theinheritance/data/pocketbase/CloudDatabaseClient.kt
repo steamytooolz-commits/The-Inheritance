@@ -1,6 +1,7 @@
 package com.theinheritance.data.pocketbase
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -81,17 +82,17 @@ class CloudDatabaseClient @Inject constructor(
         } else if (baseUrl.contains("8080") && type == DatabaseBackendType.POCKETBASE) {
             baseUrl = baseUrl.replace("8080", "8090")
         }
-        prefs.edit()
-            .putString("backend_type", type.name)
-            .putString("base_url", baseUrl)
-            .apply()
+        prefs.edit {
+            putString("backend_type", type.name)
+            putString("base_url", baseUrl)
+        }
     }
 
     fun getBackendType(): DatabaseBackendType = backendType
 
     fun setServerUrl(url: String) {
         baseUrl = url.trimEnd('/')
-        prefs.edit().putString("base_url", baseUrl).apply()
+        prefs.edit { putString("base_url", baseUrl) }
     }
 
     fun getServerUrl(): String = baseUrl
