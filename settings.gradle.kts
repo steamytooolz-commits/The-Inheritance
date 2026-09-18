@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Template App"
+rootProject.name = "The Inheritance"
 
 include(":app")

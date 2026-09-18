@@ -1,6 +1,6 @@
 {
-  "name": "Template App",
-  "description": "Production-ready Android template designed for AI agents and developers, featuring full GitHub Actions CI/CD workflows, keystore automation, Robolectric testing, and Compose architecture.",
+  "name": "The Inheritance",
+  "description": "A narrative forensic-accounting game. Your uncle died. The books are lying. You have 30 days.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

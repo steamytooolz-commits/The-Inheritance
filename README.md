@@ -1,235 +1,83 @@
-# Android Production Template & CI/CD Engine
+# The Inheritance
+*Your uncle died. The books are lying. You have 30 days.*
 
-A modern, production-grade Android application template built with **Jetpack Compose**, **Material 3**, **Robolectric**, **Roborazzi**, and a complete **GitHub Actions CI/CD Pipeline** with automated Keystore generation and signing.
+A narrative forensic-accounting game for Android. Inherit a failing business ("The Book Nook"), read its books, survive 30 days. The Game Master — the dead uncle living inside the ledger — is antagonist and ally.
 
-Designed specifically to serve as a high-reliability starter template for **AI Agents** (e.g. Gemini, Claude, Antigravity, Cursor) and human developers building enterprise-quality Android apps.
+- Platform: Android (min SDK 26, target SDK 36), Kotlin 2.4.10, Compose BOM 2026.08.00
+- Architecture: Clean Architecture + MVVM + MVI, Hilt DI, Room, Version Catalog
+- Template base: Android Production Template (CI/CD, keystore automation, Roborazzi kept intact)
 
----
+## Packaging decision (single `:app` module)
 
-## 📑 Table of Contents
+The spec describes `core/`, `data/`, `ui/` Gradle modules. This repo implements them as **packages inside `:app`** (`com.theinheritance.accounting.*`, `.simulation`, `.gm`, `.data.*`, `.ui.*`) so the template's `ci.yml` / `release.yml` / Roborazzi / Secrets-plugin pipeline keeps working without multi-module Gradle overhead. Splitting into Gradle modules later is mechanical (each package is dependency-clean: `accounting` is pure Kotlin, `gm` never touches Room).
 
-- [Architecture Overview](#-architecture-overview)
-- [Repository Structure](#-repository-structure)
-- [CI/CD Automation Matrix](#-cicd-automation-matrix)
-- [Android Release Keystore Guide](#-android-release-keystore-guide)
-  - [Automated Keystore via GitHub Actions](#1-automated-keystore-via-github-actions)
-  - [Local Keystore Generation Scripts](#2-local-keystore-generation-scripts)
-  - [Manual Keystore Creation](#3-manual-keystore-creation-with-keytool)
-  - [Configuring GitHub Repository Secrets](#4-configuring-github-repository-secrets)
-- [AI Agent Customization Playbook](#-ai-agent-customization-playbook)
-  - [1. App Identity & Namespace Sync](#1-app-identity--namespace-sync)
-  - [2. Dependency Management](#2-dependency-management)
-  - [3. Secrets & API Keys](#3-secrets--api-keys)
-  - [4. Testing Strategy & Screenshot Recording](#4-testing-strategy--screenshot-recording)
-  - [5. TestTag Semantics for Automated QA](#5-testtag-semantics-for-automated-qa)
-- [Local Development & Gradle Tasks](#-local-development--gradle-tasks)
-- [License & Contribution](#-license)
-
----
-
-## 🏛 Architecture Overview
-
-- **UI Framework:** Jetpack Compose (Material 3) with dynamic color theming, edge-to-edge system insets, and dark/light modes.
-- **Language & Runtime:** Kotlin 2.x, Java 21, Android SDK 36 (target), minSdk 24.
-- **State Management:** MVVM / MVI architecture using `ViewModel`, Kotlin Coroutines `StateFlow`, and `collectAsStateWithLifecycle`.
-- **Testing Engine:**
-  - **JVM Unit Tests:** JUnit 4 & AndroidX Test.
-  - **Robolectric:** Fast, headless JVM-based Android framework tests (no emulator required).
-  - **Roborazzi:** Visual regression and automated screenshot verification.
-- **Build System:** Gradle (Kotlin DSL `.gradle.kts`) with Version Catalog (`gradle/libs.versions.toml`).
-- **Secrets Management:** Secrets Gradle Plugin reading from `.env` and `.env.example`, generating compile-time type-safe `BuildConfig` variables.
-
----
-
-## 📂 Repository Structure
+## Project map
 
 ```
-.
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                    # Automated PR/Push validation (Lint, Tests, Roborazzi, Debug APK)
-│       ├── release.yml               # Automated production release (Keystore decoding, Signed APK & AAB)
-│       └── generate-keystore.yml     # On-demand workflow to create release keystores inside GitHub
-├── app/
-│   ├── build.gradle.kts              # Application build config, signing configs, and dependencies
-│   ├── proguard-rules.pro            # Code shrinking & obfuscation configuration
-│   └── src/
-│       ├── main/
-│       │   ├── AndroidManifest.xml   # App declarations and permissions
-│       │   ├── java/com/example/     # Kotlin Compose application source code
-│       │   └── res/                  # Vector drawables, strings, colors, adaptive launcher icon
-│       └── test/                     # Unit, Robolectric, and Roborazzi screenshot tests
-├── gradle/
-│   └── libs.versions.toml            # Centralized Gradle Version Catalog
-├── scripts/
-│   ├── generate-keystore.sh          # Linux / macOS shell script for keystore creation
-│   └── generate-keystore.ps1         # Windows PowerShell script for keystore creation
-├── .env.example                      # Template environment variables (safe to commit)
-├── metadata.json                     # AI Studio platform identification and capabilities
-└── settings.gradle.kts               # Gradle settings & plugin repositories
+app/src/main/java/com/theinheritance/
+├── TheInheritanceApp.kt, MainActivity.kt
+├── navigation/ (Routes, AppNavHost)
+├── di/ (AppModule, DatabaseModule, LlmModule, RepositoryModule)
+├── accounting/model/ (Account, AccountType, JournalEntry, JournalLine, Ledger, TrialBalance, IncomeStatement, BalanceSheet, CashFlowStatement)
+├── accounting/engine/ (AccountingEngine, PostingValidator, Calculators, FinancialStatementGenerator, PeriodCloser)
+├── accounting/fraud/ (Fraud, schemes/*)
+├── accounting/money/ (Money Long-cents, MoneyFormatter BigDecimal)
+├── simulation/ (BusinessState, EconomicSimulator, MarketEventGenerator, NpcAgentEngine, DailyTurnResolver, RunScorer)
+├── gm/ (GameMaster, GmOrchestrator, PromptBuilder, ToolExecutor, GmMemoryStore + actions/*)
+├── data/local/ (InheritanceDatabase, entity/*, dao/*, converter/*)
+├── data/llm/ (LlmEngine, MediaPipe/LiteRT/llama.cpp/Remote/RuleBased, ModelManager+Worker, LlmBackendResolver)
+├── data/repository/ (Accounting, GameState, Npc, GmMemory, Run)
+└── ui/theme|dashboard|narrative|journal|ledger|statements|npc|market|modelmanager|settings
 ```
 
----
+## Critical constraints (enforced)
 
-## 🚀 CI/CD Automation Matrix
+1. Money is `Long` cents (`Money`), BigDecimal only for display.
+2. `accounting/` is pure Kotlin — verified: no `android`/`androidx`/`dagger` imports.
+3. GM never writes DB directly — goes through `ToolExecutor` → engine validates → repository persists.
+4. Rejected actions are fed back (`recordRejection`).
+5. Action budget 15/turn (`GmActionBudget(maxPerTurn = 15)`).
+6. Model downloads `NetworkType.UNMETERED` only (`ModelManager`).
+7. Offline-first: `RuleBasedEngine` default Hilt binding; MediaPipe when model present; remote optional.
+8. Every statement line tappable → drills to ledger + GM explains.
+9. Fraud procedurally generated per run (`FraudGenerator(seed)`).
+10. 30-day runs (`maxDays = 30`), NG+ keeps GM memory.
 
-This template comes with 3 fully automated, battle-tested GitHub Actions workflows:
-
-### 1. Continuous Integration (`.github/workflows/ci.yml`)
-Runs on every push to `main`/`master`/`develop` and on every pull request:
-- **Environment Setup:** Configures Java 17 Temurin, initializes Gradle caching via `gradle/actions/setup-gradle@v4`.
-- **Fallback Secrets:** Copies `.env.example` to `.env` if not present so Secrets Gradle Plugin never fails in CI.
-- **Linting:** Runs Android Lint (`./gradlew lintDebug`).
-- **JVM Tests:** Executes all unit and Robolectric tests (`./gradlew testDebugUnitTest`).
-- **Visual Regression:** Executes Roborazzi screenshot verification (`./gradlew verifyRoborazziDebug`).
-- **Artifacts:** Automatically uploads test reports, failure diff images, and the assembled `debug.apk`.
-
-### 2. Release & Signing (`.github/workflows/release.yml`)
-Runs automatically on Git tags (e.g. `v1.0.0`) or via manual trigger (`workflow_dispatch`):
-- **Keystore Decoding:** Safely decodes the `KEYSTORE_BASE64` secret into `my-upload-key.jks`.
-- **Zero-Failure Fallback:** If `KEYSTORE_BASE64` has not yet been configured in the repository, the workflow generates a temporary release keystore on-the-fly to validate the build without throwing unrecoverable errors.
-- **Signed Artifacts:** Assembles signed Release APK (`assembleRelease`) and signed Google Play App Bundle (`bundleRelease`).
-- **GitHub Release:** Publishes a release with the signed APK and AAB attached as downloadable assets.
-
-### 3. Keystore Generator (`.github/workflows/generate-keystore.yml`)
-Manual workflow (`workflow_dispatch`) to generate a cryptographically strong, Google Play-compatible release keystore directly inside GitHub Actions:
-- Uses Java `keytool` with RSA 2048-bit keys and 30+ year validity.
-- Masks the output passwords and writes step-by-step secret addition guides directly to the GitHub Action summary.
-
----
-
-## 🔑 Android Release Keystore Guide
-
-Google Play requires all production apps and updates to be digitally signed by an **Upload Keystore** (`.jks` or `.keystore`).
-
-### 1. Automated Keystore via GitHub Actions
-If you are already running this repository on GitHub:
-1. Go to the **Actions** tab in your repository.
-2. Select **Generate Release Keystore** in the left sidebar.
-3. Click **Run workflow**.
-4. Once completed, download the artifact containing your keystore, and review the Job Summary for instructions.
-
-### 2. Local Keystore Generation Scripts
-
-#### Linux / macOS:
-```bash
-chmod +x ./scripts/generate-keystore.sh
-./scripts/generate-keystore.sh
-```
-
-#### Windows PowerShell:
-```powershell
-.\scripts\generate-keystore.ps1
-```
-
-Both scripts generate:
-- `my-upload-key.jks` (the binary keystore file)
-- `my-upload-key.jks.base64.txt` (the Base64-encoded string for GitHub Secrets)
-
-### 3. Manual Keystore Creation with `keytool`
-You can also generate a keystore manually using JDK's `keytool`:
-
-```bash
-keytool -genkeypair \
-  -v \
-  -keystore my-upload-key.jks \
-  -alias upload \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000 \
-  -storepass "YourStrongPassword123!" \
-  -keypass "YourStrongPassword123!" \
-  -dname "CN=Android Developer, OU=Mobile, O=My Company, L=San Francisco, ST=CA, C=US"
-```
-
-To encode it for GitHub Actions:
-- **Linux:** `base64 -w 0 my-upload-key.jks > keystore.base64.txt`
-- **macOS:** `base64 -i my-upload-key.jks -o keystore.base64.txt`
-- **Windows (PowerShell):** `[Convert]::ToBase64String([IO.File]::ReadAllBytes('my-upload-key.jks')) | Out-File -Encoding ascii keystore.base64.txt`
-
-### 4. Configuring GitHub Repository Secrets
-Navigate to your GitHub repository:
-**Settings** > **Secrets and variables** > **Actions** > **New repository secret**
-
-Add the following 4 secrets:
-
-| Secret Name | Description | Example Value |
-|---|---|---|
-| `KEYSTORE_BASE64` | Entire text content of `keystore.base64.txt` | `MIIDvTCCAqW...` |
-| `STORE_PASSWORD` | Password of the keystore | `YourStrongPassword123!` |
-| `KEY_PASSWORD` | Password of the key alias | `YourStrongPassword123!` |
-| `KEY_ALIAS` | Key alias name | `upload` |
-| `ENV_FILE` *(Optional)* | Contents of production `.env` | `GEMINI_API_KEY=...` |
-
-> ℹ️ **Debug Keystore in CI:** The continuous integration pipeline (`ci.yml`) automatically ensures a standard development `debug.keystore` is present on the runner prior to executing `lintDebug` and `assembleDebug`, guaranteeing clean, self-healing builds in fresh CI/CD environments without manual keystore provisioning.
-
----
-
-## 🤖 AI Agent Customization Playbook
-
-When an AI Agent is tasked with turning this template into a feature-complete application, it **MUST** follow these systematic steps:
-
-### 1. App Identity & Namespace Sync
-1. **Set `applicationId`:** In `app/build.gradle.kts`, set `applicationId = "com.aistudio.<app_theme>.<random>"`.
-   - ⚠️ **DO NOT** change `namespace = "com.example"` — this preserves the source folder structure and resource bindings.
-2. **Synchronize App Name across 3 files:**
-   - In `app/src/main/res/values/strings.xml`: `<string name="app_name">Your App Name</string>`
-   - In `settings.gradle.kts`: `rootProject.name = "Your App Name"`
-   - In `metadata.json`: `"name": "Your App Name"`
-3. **Synchronize Unit Tests:** Update `app/src/test/java/com/example/ExampleRobolectricTest.kt` to expect the updated string:
-   `assertEquals("Your App Name", appName)`.
-
-### 2. Dependency Management
-This template includes pre-configured, tested dependencies in `gradle/libs.versions.toml`:
-- **Uncommenting Dependencies:** To enable features like Room, Retrofit, Firebase Auth, or CameraX, uncomment the pre-configured dependencies in `app/build.gradle.kts`.
-- **Kebab-case to Dot-notation:** When referencing a Version Catalog dependency from `libs.versions.toml` in `app/build.gradle.kts`:
-  - `androidx-navigation-compose` ➡️ `libs.androidx.navigation.compose`
-  - `converter-moshi` ➡️ `libs.converter.moshi`
-- **APK Optimization:** Keep unused dependencies commented out to minimize build times and APK footprint.
-
-### 3. Secrets & API Keys
-- Never hardcode API keys or credentials in Kotlin source files.
-- Place placeholder keys in `.env.example`:
-  ```env
-  GEMINI_API_KEY=MY_GEMINI_API_KEY
-  ```
-- Access the injected keys via `BuildConfig` in your Kotlin code:
-  ```kotlin
-  val apiKey = BuildConfig.GEMINI_API_KEY
-  ```
-
-### 4. Testing Strategy & Screenshot Recording
-- **Running Tests:** Always run `./gradlew testDebugUnitTest` to verify business logic and Robolectric CUJs.
-- **Recording Screenshots:** When UI changes are made, update reference screenshots with:
-  ```bash
-  gradle :app:recordRoborazziDebug
-  ```
-- **Verifying Screenshots:** Confirm no unintended visual drift occurs with:
-  ```bash
-  gradle :app:verifyRoborazziDebug
-  ```
-
-### 5. TestTag Semantics for Automated QA
-To make the application testable by AI agents and automated testing frameworks:
-- Add `Modifier.testTag("descriptive_snake_case_id")` to all primary buttons, input fields, cards, and toggles.
-- Ensure all interactive elements have a minimum touch target size of `48.dp`.
-
----
-
-## 🛠 Local Development & Gradle Tasks
+## Build
 
 | Command | Action |
 |---|---|
-| `gradle :app:assembleDebug` | Build debug APK |
-| `gradle :app:testDebugUnitTest` | Run JUnit & Robolectric unit tests |
-| `gradle :app:verifyRoborazziDebug` | Verify UI against Roborazzi golden screenshots |
-| `gradle :app:recordRoborazziDebug` | Generate/update golden screenshot baselines |
-| `gradle :app:lintDebug` | Run Android Lint static analysis |
-| `gradle :app:assembleRelease` | Build signed Release APK |
-| `gradle :app:bundleRelease` | Build signed Release Google Play App Bundle (AAB) |
+| `gradle :app:assembleDebug` | Debug APK |
+| `gradle :app:testDebugUnitTest` | JUnit + Robolectric (`PostingValidatorTest`, `FraudGeneratorTest`, `JournalScreenTest`) |
+| `gradle :app:verifyRoborazziDebug` | Golden screenshots |
+| `gradle :app:recordRoborazziDebug` | Update goldens |
+| `gradle :app:lintDebug` | Lint |
 
----
+Secrets: `.env.example` → `.env` (Secrets plugin → `BuildConfig`). Never commit `.env`/`.jks`.
 
-## 📄 License
+## Phases 10–12
 
-This template is distributed under the Apache 2.0 License. Designed for AI studio builders, developers, and autonomous coding agents worldwide.
+**Live Economy (10):** `MarketViewModel` drives a 7-day street forecast from the seeded
+`MarketEventGenerator`; events persist via `RunRepository` and feed `DailyTurnResolver`
+cash deltas. Deterministic per run seed.
+
+**Monetization (11):** `monetization/` package —
+`BillingManager` (one-time `the_inheritance_pro` SKU, acknowledge + entitlement refresh),
+`ProUnlockRepository` (DataStore flag, offline-readable),
+`AdsManager` (optional AdMob interstitial, initialized in `TheInheritanceApp`, game plays
+without it), `AnalyticsLogger` (run/day/fraud/ending/pro events, never crashes).
+Create the SKU in Play Console → Monetize → Products before release.
+
+**Polish & Beta (12):** 3-page `TutorialScreen` (`TutorialRoute`, first-run flag in
+DataStore, entry in Settings), zero-asset `SoundManager` (ToneGenerator beeps, no res
+files), permission-free `Haptics` (Compose haptic channel).
+
+### Closed beta (Play Console)
+
+1. `Generate Release Keystore` workflow (or scripts) → set `KEYSTORE_BASE64`,
+   `STORE_PASSWORD`, `KEY_PASSWORD`, `KEY_ALIAS` secrets.
+2. Tag `v1.0.0` → `release.yml` publishes signed APK + AAB.
+3. Play Console → Testing → Closed testing → create track, upload the AAB,
+   add tester emails, roll out. Promote to production after the 30-day
+   content pass.
+
